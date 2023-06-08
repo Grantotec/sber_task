@@ -4,6 +4,11 @@ from datetime import datetime, date, timedelta
 app = FastAPI()
 
 
+def last_day_of_month(day: date) -> date:
+    next_month = day.replace(day=28) + timedelta(days=4)  # this will never fail
+    return next_month - timedelta(days=next_month.day)
+
+
 @app.get("/")
 async def read_item(start_date: str = None,
                     periods: int = None,
@@ -14,28 +19,23 @@ async def read_item(start_date: str = None,
 
     print(start_date, periods, amount, rate)
 
-
-    result = {}
+    output = {}
     start_date = datetime.strptime(start_date, '%d.%m.%Y')
-    next_month = start_date.replace(day=28) + timedelta(days=4)
-    last_day_of_month = next_month - timedelta(days=next_month.day)
+
+    date_not_str = last_day_of_month(start_date)
 
     while periods > 0:
-        date_str = last_day_of_month.strftime('%d.%m.%Y')
-        sum = amount * (1 + rate / 12 / 100)
-        result[date_str] = round(sum, 2)
+        date_str = date_not_str.strftime('%d.%m.%Y')
+        summa = amount * (1 + rate / 12 / 100)
+        output[date_str] = round(summa, 2)
 
         # Обновляем дату последнего дня следующего месяа
-        last_day_of_month += timedelta(days=1)
-        last_day_of_month = last_day_of_month.replace(day=28) \
-                            + timedelta(days=4)
-        last_day_of_month = last_day_of_month \
-                            - timedelta(days=last_day_of_month.day)
+        next_day = date_not_str + timedelta(days=1)
+        date_not_str = last_day_of_month(next_day)
+
         # Обновляем счетчик периодов
         periods -= 1
         # Обновляем сумму
-        amount = sum
+        amount = summa
 
-
-    print('Result: ', result)
-    return {'Status': 'OK'}
+    return output, 200
