@@ -5,6 +5,13 @@ app = FastAPI()
 
 
 def last_day_of_month(day: date) -> date:
+    '''
+    Принимает на вход дату и возвращает последний
+    день месяца из этой даты
+    :param day:
+    :return: возвращает последний
+    день месяца из этой даты
+    '''
     next_month = day.replace(day=28) + timedelta(days=4)  # this will never fail
     return next_month - timedelta(days=next_month.day)
 
