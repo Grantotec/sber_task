@@ -1,6 +1,12 @@
 from datetime import datetime, date, timedelta
 from pydantic import BaseModel, constr, conint, confloat
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, status
+from fastapi.exceptions import RequestValidationError
+from fastapi.encoders import jsonable_encoder
+from fastapi.responses import JSONResponse
+
+
+app = FastAPI()
 
 
 def last_day_of_month(day: date) -> date:
@@ -11,18 +17,24 @@ def last_day_of_month(day: date) -> date:
     :return: возвращает последний
     день месяца из этой даты
     """
-    next_month = day.replace(day=28) + timedelta(days=4)  # this will never fail
+    next_month = day.replace(day=28) + timedelta(days=4)
     return next_month - timedelta(days=next_month.day)
 
 
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request,
+                                       exc: RequestValidationError):
+    return JSONResponse(
+        status_code=status.HTTP_400_BAD_REQUEST,
+        content=jsonable_encoder({"error": exc.errors()[0]['msg']})
+    )
+
+
 class InputData(BaseModel):
-    date: constr(regex=r'\d{2}.\d{2}.\d{4}') = '31.01.2021'
-    periods: conint(ge=1, le=60) = 3
-    amount: conint(ge=10000, le=3000000) = 10000
-    rate: confloat(ge=1.0, le=8.0) = 6
-
-
-app = FastAPI()
+    date: constr(regex=r'\d{2}.\d{2}.\d{4}')
+    periods: conint(ge=1, le=60)
+    amount: conint(ge=10000, le=3000000)
+    rate: confloat(ge=1.0, le=8.0)
 
 
 @app.post("/")
@@ -47,4 +59,7 @@ def read_item(input_data: InputData):
         # Обновляем сумму
         input_data.amount = summa
 
-    return {'Status': 'OK', 'Response': output}
+    return JSONResponse(
+        status_code=status.HTTP_200_OK,
+        content=output
+    )
