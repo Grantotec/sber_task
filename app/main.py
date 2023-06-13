@@ -1,10 +1,17 @@
 from datetime import datetime, date, timedelta
 from pydantic import BaseModel, constr, conint, confloat
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from starlette import status
 from fastapi.exceptions import RequestValidationError
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
+
+
+class InputData(BaseModel):
+    date: constr(regex=r'\d{2}.\d{2}.\d{4}')
+    periods: conint(ge=1, le=60)
+    amount: conint(ge=10000, le=3000000)
+    rate: confloat(ge=1.0, le=8.0)
 
 
 app = FastAPI()
@@ -22,18 +29,11 @@ def last_day_of_month(day: date) -> date:
 
 
 @app.exception_handler(RequestValidationError)
-def validation_exception_handler(exc: RequestValidationError):
+def validation_exception_handler(request: Request, exc: RequestValidationError):
     return JSONResponse(
         status_code=status.HTTP_400_BAD_REQUEST,
-        content=jsonable_encoder({"error": exc.errors()[0]['msg']})
+        content=jsonable_encoder({"error": f"{exc.errors()[0]['loc'][1]} {exc.errors()[0]['msg']}"}),
     )
-
-
-class InputData(BaseModel):
-    date: constr(regex=r'\d{2}.\d{2}.\d{4}')
-    periods: conint(ge=1, le=60)
-    amount: conint(ge=10000, le=3000000)
-    rate: confloat(ge=1.0, le=8.0)
 
 
 @app.post("/api/v1/deposit")
