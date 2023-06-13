@@ -1,7 +1,0 @@
-FROM python:3.10
-
-RUN mkdir /sber_task
-
-WORKDIR /sber_task
-
-COPY
